@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish Windows x64 (self-contained single file)
+        run: |
+          dotnet publish PortScanner/PortScanner.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -o publish/win-x64
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: PortScanner ${{ github.ref_name }} — Initial Release
+          body: |
+            ## PortScanner ${{ github.ref_name }}
+
+            Self-contained Windows x64 executable. No .NET runtime required.
+
+            ### Features
+
+            - **Scanning**
+              - [x] Scan single IP or hostname for a port range (e.g. 1–1024)
+              - [x] Scan well-known ports only (HTTP, HTTPS, SSH, FTP, SMTP, DNS, RDP, MySQL, PostgreSQL, MongoDB, etc.)
+              - [x] CLI: `PortScanner.exe <host> [startPort] [endPort]` and interactive mode when no args
+
+            - **Performance & UX**
+              - [x] Async/parallel scanning with configurable thread count (`--threads`)
+              - [x] Configurable timeout per port (default 300 ms, `--timeout`)
+              - [x] Real-time results as ports are discovered
+              - [x] Color-coded output: green = open, red = closed, yellow = filtered
+              - [x] Service name next to each port (e.g. 22 → SSH)
+              - [x] Summary: open count, scan duration, host
+
+            - **Export & data**
+              - [x] `--output` / `-o` to save results to file
+              - [x] JSON (array of scan results), CSV (with headers), or TXT (readable report) by file extension
+              - [x] 50+ well-known port names (Redis, RabbitMQ, Elasticsearch, Docker, Kubernetes, VNC, LDAP, SMB, NTP, SNMP, etc.)
+
+            - **OS detection**
+              - [x] Basic OS fingerprinting from ping TTL (Linux ~64, Windows ~128, network device ~255)
+              - [x] OS guess shown in scan summary
+
+            ### Usage
+
+            ```bash
+            PortScanner.exe 192.168.1.1
+            PortScanner.exe 192.168.1.1 1 1024 --common -o results.json
+            ```
+
+            See [README](https://github.com/${{ github.repository }}/blob/main/README.md) for full documentation.
+
+            **Use only on systems you own or have permission to scan.**
+          files: |
+            publish/win-x64/PortScanner.exe
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

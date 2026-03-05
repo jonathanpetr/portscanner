@@ -1,0 +1,15 @@
+# Build / publish
+bin/
+obj/
+publish/
+*.user
+*.suo
+.vs/
+
+# IDE
+.idea/
+*.rsuser
+
+# OS
+.DS_Store
+Thumbs.db
